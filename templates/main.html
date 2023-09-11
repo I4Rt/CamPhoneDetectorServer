@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<style>
+    .col{
+        display:flex;
+        flex-direction:column;
+    }
+    .caseList, .userLst{
+        display:flex; 
+        flex-direction: column;
+        width:250px;
+        background-color:#DDDDDD;
+        height:450px;
+        overflow-y:scroll;
+        overflow-x:hidden;
+    }
+    .userLst{
+        background-color:#EDEDED;
+        border-right:2px dashed black;
+    }
+    .caseList>a, .userLst>a{
+        text-decoration:none;
+        color:black;
+        padding:10px;
+        border: 1px solid black; 
+        width:210px;
+    }
+    .preview{
+        width:700px;
+        height:500px;
+        object-fit: contain;
+        background-color:black;
+    }
+    .actionsRow{
+        width:1202px;
+        display:flex;
+        flex-direction:row-reverse;
+    }
+    .del{
+        width:200px;
+        text-align:center;
+        text-decoration:none;
+        font-weight:bold;
+        color:white;
+        background-color:red;
+        padding:10px;
+    }
+</style>
+<body>
+    <div style="display:flex;">
+        <div class="col">
+            <p><b>Cписок пользоватлей</b></p>
+            <div class="userLst">
+                
+                {% for user in users %}
+                    <a href="/main?selectedUser={{user}}">
+                        {{user}}     
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="col">
+            <p><b>Cписок нарушений</b></p>
+            <div class="caseList">
+                {% for warn in warnings %}
+                    <a href="/main?selectedUser={{curUser}}&warnName={{warn}}">
+                        {{warn}}     
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+        
+        {%if img == "" :%}
+            <img class="preview" src="/sys/select.png">
+        {%else %}
+            <img class="preview" src="{{img}}">
+        {%endif %}
+        
+    </div>
+    <div class="actionsRow">
+        <a class="del" href="/del?imgPath={{img}}&selectedUser={{curUser}}">Удалить</a>
+    </div>
+</body>
+</html>
