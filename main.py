@@ -31,6 +31,7 @@ users = {'admin': {'password': 'password'}}
 class User(flask_login.UserMixin):
     pass
 
+
 def deleteForce(path):
     for root, dirs, files in os.walk(path, topdown=False):
         print(len(dirs), len(files))
@@ -90,9 +91,10 @@ def setWarning():
         
         sender = request.remote_addr
         # sender.replace('.', '_')
-        userName = request.json['clientName']
+        userName = request.json['client_name']
         encImg = request.json['img']
-    except Exception:
+    except Exception as e:
+        print(e)
         print({'Message': 'Json is not valid'})
         return make_response({'Message': 'Json is not valid'})
     
@@ -108,12 +110,13 @@ def setWarning():
     path = os.path.join(path, sender) 
     if not os.path.exists(path):
         os.mkdir(path)
-        with open(directory + f'/images/{path}/data.txt', 'w') as file:
+        os.mkdir(os.path.join(path, 'images'))
+        with open(directory + f'/images/{sender}/data.txt', 'w') as file: #BUG fixed
             file.write(json.dumps({'userName': userName}))
     # print(path)
     # print(sender)
     try:
-        result = cv2.imwrite(f'images/{sender}/{curTime}.jpg', image)
+        result = cv2.imwrite(f'images/{sender}/images/{curTime}.jpg', image)
         if not result:
             print({'Message': 'Image saving error'})
             return make_response({'Message': 'Image saving error'})
@@ -152,11 +155,15 @@ def getMain():
     warns = []
     imgSrc = ""
     if selected != None:
-        warns = [[path, f'{path[0:2]}/{path[3:5]}/{path[6:10]} {path[13:15]}:{path[16:18]}:{path[19:21]}'] for path in os.listdir(os.path.join(directory, f'images/{selected}/images'))]
+        try:
+            warns = [[path, f'{path[0:2]}/{path[3:5]}/{path[6:10]} {path[13:15]}:{path[16:18]}:{path[19:21]}'] for path in os.listdir(os.path.join(directory, f'images/{selected}/images'))]
+        except Exception:
+            print('path deleted')
+            return render_template('main.html', users=userList, warnings=[], curUser=None,img="")
         if selectedWarn != None:
             imgSrc = f'{selected}/images/{selectedWarn}'
             
-    return render_template('main.html', users = userList, warnings = warns, curUser=selected,img=imgSrc)
+    return render_template('main.html', users=userList, warnings=warns, curUser=selected,img=imgSrc)
 
 @app.route('/del')
 def delete():
