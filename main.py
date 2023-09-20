@@ -13,6 +13,9 @@ directory = os.getcwd()
 
 app = Flask(__name__, template_folder='templates', static_folder='images',static_url_path = '')
 
+
+
+
 # auth
 app.secret_key = 'U wont guess it'
 login_manager = flask_login.LoginManager()
@@ -31,7 +34,20 @@ users = {'admin': {'password': 'password'}}
 class User(flask_login.UserMixin):
     pass
 
+# transactional like
+query = []
 
+def addToQuery(data):
+    query.append(data)
+    
+def isReady(data):
+    if query.index(data) == 0:
+        query.remove(data)
+        return True
+    return False
+
+
+# delete!
 def deleteForce(path):
     for root, dirs, files in os.walk(path, topdown=False):
         print(len(dirs), len(files))
@@ -41,7 +57,7 @@ def deleteForce(path):
             os.rmdir(os.path.join(root, name))
 
 
-
+# login functions
 @login_manager.user_loader
 def user_loader(login):
     if login not in users:
@@ -59,6 +75,7 @@ def request_loader(request):
     user.id = login
     return user
 
+# controllers
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'GET':
@@ -116,7 +133,11 @@ def setWarning():
     # print(path)
     # print(sender)
     try:
-        result = cv2.imwrite(f'images/{sender}/images/{curTime}.jpg', image)
+        current_dateTime = datetime.now()
+        pathDated = os.path.join(os.path.join(path, f'images/{current_dateTime.month}_{current_dateTime.day}_{current_dateTime.year}')) 
+        if not os.path.exists(pathDated):
+            os.mkdir(pathDated)
+        result = cv2.imwrite(f'images/{sender}/images/{current_dateTime.month}_{current_dateTime.day}_{current_dateTime.year}/{curTime}.jpg', image)
         if not result:
             print({'Message': 'Image saving error'})
             return make_response({'Message': 'Image saving error'})
@@ -156,7 +177,15 @@ def getMain():
     imgSrc = ""
     if selected != None:
         try:
-            warns = [[path, f'{path[0:2]}/{path[3:5]}/{path[6:10]} {path[13:15]}:{path[16:18]}:{path[19:21]}'] for path in os.listdir(os.path.join(directory, f'images/{selected}/images'))]
+            warns = []
+            curDir = os.path.join(directory, f'images/{selected}/images')
+            for folder in os.listdir(curDir):
+                tempDir = os.path.join(directory, f'images/{selected}/images/{folder}')
+                print('folder: ', folder)
+                for image in os.listdir(tempDir):
+                    print('L__>', image)
+                    warns.append([folder + '/' + image, f'{image[0:2]}/{image[3:5]}/{image[6:10]} {image[13:15]}:{image[16:18]}:{image[19:21]}'])
+            # warns = [[path, f'{path[0:2]}/{path[3:5]}/{path[6:10]} {path[13:15]}:{path[16:18]}:{path[19:21]}'] for path in os.listdir(os.path.join(directory, f'images/{selected}/images'))]
         except Exception:
             print('path deleted')
             return render_template('main.html', users=userList, warnings=[], curUser=None,img="")
@@ -174,8 +203,12 @@ def delete():
         os.remove(directory + '/images/' +imgPath)
         print('len is', len(os.listdir(os.path.join(directory, 'images/' + imgPath[:-25]))), directory + '/images/' + imgPath[:-25])
         if len(os.listdir(os.path.join(directory, 'images/' + imgPath[:-25]))) == 0:
-            print(directory + '/images/' + imgPath[:-32])
-            shutil.rmtree(directory + '/images/' + imgPath[:-32])
+            # 192.168.79.33/images/09_20_2023/15_09_2023___18_16_23.jpg
+            print(directory + '/images/' + imgPath[:-36])
+            shutil.rmtree(directory + '/images/' + imgPath[:-36])
+            if len(os.listdir(os.path.join(directory, 'images/' + imgPath.split('/')[0] + '/' + imgPath.split('/')[1] + '/'))) == 0:
+                print(directory + '/images/' + imgPath.split('/')[0] + '/')
+                shutil.rmtree(directory + '/images/' + imgPath.split('/')[0] + '/')
             return redirect(url_for('getMain'))
         return getMain()
     except Exception as e:
