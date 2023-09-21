@@ -110,6 +110,7 @@ def setWarning():
         # sender.replace('.', '_')
         userName = request.json['client_name']
         encImg = request.json['img']
+        pathName = sender+'-'+userName
     except Exception as e:
         print(e)
         print({'Message': 'Json is not valid'})
@@ -124,20 +125,29 @@ def setWarning():
     
     # Path 
     path = os.path.join(directory, 'images')
-    path = os.path.join(path, sender) 
+    path = os.path.join(path, pathName) 
     if not os.path.exists(path):
         os.mkdir(path)
         os.mkdir(os.path.join(path, 'images'))
-        with open(directory + f'/images/{sender}/data.txt', 'w') as file: #BUG fixed
+        with open(directory + f'/images/{pathName}/data.txt', 'w') as file: #BUG fixed
             file.write(json.dumps({'userName': userName}))
     # print(path)
     # print(sender)
     try:
         current_dateTime = datetime.now()
-        pathDated = os.path.join(os.path.join(path, f'images/{current_dateTime.month}_{current_dateTime.day}_{current_dateTime.year}')) 
+        if len(str(current_dateTime.month)) == 1: 
+            m = '0'+str(current_dateTime.month) 
+        else:  
+            m = str(current_dateTime.month)
+        if len(str(current_dateTime.day)) == 1: 
+            d = '0'+str(current_dateTime.day) 
+        else:  
+            d = str(current_dateTime.day)
+        y = current_dateTime.year
+        pathDated = os.path.join(os.path.join(path, f'images/{m}_{d}_{y}')) 
         if not os.path.exists(pathDated):
             os.mkdir(pathDated)
-        result = cv2.imwrite(f'images/{sender}/images/{current_dateTime.month}_{current_dateTime.day}_{current_dateTime.year}/{curTime}.jpg', image)
+        result = cv2.imwrite(f'images/{pathName}/images/{m}_{d}_{y}/{curTime}.jpg', image)
         if not result:
             print({'Message': 'Image saving error'})
             return make_response({'Message': 'Image saving error'})
@@ -160,7 +170,19 @@ def getMain():
         selectedWarn = request.args.get('warnName')
     except:
         selectedWarn = None
-    print(selectedWarn)
+    try:
+        date = request.args.get('date')
+        if date == None:
+            date = ''
+    except:
+        date = ''
+    
+    if date != '':
+        datetime_object = datetime.strptime(date, '%m_%d_%Y').strftime("%Y-%m-%d")
+    else:
+        datetime_object = None
+    
+    
     
     userList = []
     for path in os.listdir(os.path.join(directory, 'images')):
@@ -168,8 +190,9 @@ def getMain():
             if path != "sys":
                 with open(directory + f'/images/{path}/data.txt', 'r') as file:
                     data = json.loads(file.read())
-                user = [path, data['userName']] 
-                userList.append(user)
+                user = [path.split('-')[0], data['userName']] 
+                if date in os.listdir(os.path.join(directory, f'images/{path}/images')) or date == '':
+                    userList.append(user)
         except Exception as e:
             print(e)
             
@@ -178,36 +201,45 @@ def getMain():
     if selected != None:
         try:
             warns = []
-            curDir = os.path.join(directory, f'images/{selected}/images')
-            for folder in os.listdir(curDir):
-                tempDir = os.path.join(directory, f'images/{selected}/images/{folder}')
-                print('folder: ', folder)
-                for image in os.listdir(tempDir):
+            if date == '':
+                curDir = os.path.join(directory, f'images/{selected}/images')
+                for folder in os.listdir(curDir):
+                    tempDir = os.path.join(directory, f'images/{selected}/images/{folder}')
+                    print('folder: ', folder)
+                    for image in os.listdir(tempDir):
+                        print('L__>', image)
+                        warns.append([folder + '/' + image, f'{image[0:2]}/{image[3:5]}/{image[6:10]} {image[13:15]}:{image[16:18]}:{image[19:21]}'])
+            else:
+                selecredDir = os.path.join(directory, f'images/{selected}/images/{date}')
+                for image in os.listdir(selecredDir):
                     print('L__>', image)
-                    warns.append([folder + '/' + image, f'{image[0:2]}/{image[3:5]}/{image[6:10]} {image[13:15]}:{image[16:18]}:{image[19:21]}'])
+                    warns.append([date + '/' + image, f'{image[0:2]}/{image[3:5]}/{image[6:10]} {image[13:15]}:{image[16:18]}:{image[19:21]}'])
+                
             # warns = [[path, f'{path[0:2]}/{path[3:5]}/{path[6:10]} {path[13:15]}:{path[16:18]}:{path[19:21]}'] for path in os.listdir(os.path.join(directory, f'images/{selected}/images'))]
-        except Exception:
+        except Exception as e:
+            print(e)
             print('path deleted')
-            return render_template('main.html', users=userList, warnings=[], curUser=None,img="")
+            print('selected date is', date)
+            return render_template('main.html', users=userList, warnings=[], curUser=None,img="", selectedDate=date, calendarDate=datetime_object)
+        
         if selectedWarn != None:
             imgSrc = f'{selected}/images/{selectedWarn}'
-            
-    return render_template('main.html', users=userList, warnings=warns, curUser=selected,img=imgSrc)
+    print('selected date is', date)
+    return render_template('main.html', users=userList, warnings=warns, curUser=selected,img=imgSrc, selectedDate=date, calendarDate=datetime_object)
 
 @app.route('/del')
 def delete():
     try:
         # request.json['param']
         imgPath = request.args.get('imgPath')
-        print(f'removing: {directory + "/images/" +imgPath}')
-        os.remove(directory + '/images/' +imgPath)
-        print('len is', len(os.listdir(os.path.join(directory, 'images/' + imgPath[:-25]))), directory + '/images/' + imgPath[:-25])
+        # print(f'removing: {directory + "/images/" +imgPath}')
+        os.remove(directory + '/images/' +imgPath)                  #TODO: add check if exist
+        #print('len is', len(os.listdir(os.path.join(directory, 'images/' + imgPath[:-25]))), directory + '/images/' + imgPath[:-25])
         if len(os.listdir(os.path.join(directory, 'images/' + imgPath[:-25]))) == 0:
-            # 192.168.79.33/images/09_20_2023/15_09_2023___18_16_23.jpg
-            print(directory + '/images/' + imgPath[:-36])
-            shutil.rmtree(directory + '/images/' + imgPath[:-36])
-            if len(os.listdir(os.path.join(directory, 'images/' + imgPath.split('/')[0] + '/' + imgPath.split('/')[1] + '/'))) == 0:
-                print(directory + '/images/' + imgPath.split('/')[0] + '/')
+            # ../images/192.168.79.33/images/09_20_2023/
+            shutil.rmtree(directory + '/images/' + imgPath[:-25])
+            if len(os.listdir(os.path.join(directory, 'images/' + imgPath.split('/')[0] + '/' + imgPath.split('/')[1] ))) == 0:
+                # ../images/192.168.79.33/
                 shutil.rmtree(directory + '/images/' + imgPath.split('/')[0] + '/')
             return redirect(url_for('getMain'))
         return getMain()

@@ -4,12 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
-
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.4.1/dist/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
-    <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>
+
 </head>
 
 <style>
+
     .col{
         display:flex;
         flex-direction:column;
@@ -99,12 +99,21 @@
     <div class="row">
         <div class="col-md-2">.</div>
         <div class="col-md-8">
+            <!-- navbar -->
             <div class="row rounded bg-dark mt-2 shadow p-2">
                 <div class="col-md-4 ml-0 text-left m-auto"><h4 class='text-light'>PhotoCamDetector</h4></div>
                 <div class="col"></div>
                 <div class="col-md-4 mr-0 time text-right text-light m-auto" id='clock' onload="currentTime()"></div>
                 <div class="col-md-1 border-left mr-0 time text-right m-auto"><a class='text-decoration-none text-muted logoutLink' href='/logout'>logout</a></div>
             </div>
+            <!-- строка фильтров -->
+            <div class="row rounded bg-light mt-2 shadow p-2">
+                <div class="col-md-1 ml-0 text-left m-auto"><div>Фильтр</div></div>
+                <div class="col-md-2 ml-0 text-left m-auto"><input type="date" value='{{calendarDate}}' id='dateInput' onchange='setDate()'></div>
+                <div class="col-md-2 ml-0 text-left m-auto"><button onclick='setAllDates()'>Все время</button></div>
+                <div class="col"></div>
+            </div>
+            <!-- main -->
             <div class="row mt-3" style='height:500px; max-height: 500px'>
                 <div class="col-5 p-0">
                     <div class="pr-3">
@@ -116,7 +125,7 @@
                                     </div>
                                     {% for user in users %}
                                         <div class="row">
-                                            <a href="/main?selectedUser={{user[0]}}" class='text-nowrap text-decoration-none text-truncate mw-100'>
+                                            <a href="/main?date={{selectedDate}}&selectedUser={{user[0]}}-{{user[1]}}" class='text-nowrap text-decoration-none text-truncate mw-100'>
                                                 {{user[0]}} - {{user[1]}}
                                             </a>
                                         </div>
@@ -128,7 +137,7 @@
                                     </div>
                                     {% for warn in warnings %}
                                         <div class="row">
-                                            <a href="/main?selectedUser={{curUser}}&warnName={{warn[0]}}">
+                                            <a href="/main?date={{selectedDate}}&selectedUser={{curUser}}&warnName={{warn[0]}}">
                                                 {{warn[1]}}     
                                             </a>
                                         </div>  
@@ -147,9 +156,9 @@
                         <div class='row w-100 ml-0 pr-3 pl-3' style='margin-top: -40px;'>
                             <div class="col rounded bg-light">
                                 <div class="row d-flex align-items-center justify-content-space" style='height: 30px;'>
-                                    <div class='col-10 border-right' style='font-size: 12px;'>{{curUser}} > {{img}}</div>
+                                    <div class='col-10 border-right' style='font-size: 12px;'>{{img}}</div>
                                     <div class='col-2'>
-                                        <a class='text-danger deleteLink' href="/del?imgPath={{img}}&selectedUser={{curUser}}">Удалить</a>
+                                        <a class='text-danger deleteLink' href="/del?date={{selectedDate}}&imgPath={{img}}&selectedUser={{curUser}}">Удалить</a>
                                     </div>
                                 </div>
                             </div>
@@ -165,6 +174,25 @@
     </div>
     
     <script>
+        function setDate(){
+            console.log('here we go')
+            var input = document.getElementById("dateInput").value;
+            var dateEntered = new Date(input);
+            let day = dateEntered.getDate().toString();
+            console.log(day.length)
+            day = day.length === 1 ? '0' + day : day
+            let month = dateEntered.getMonth() + 1;
+            month = month.toString()
+            console.log(month.length)
+            month = month.length === 1 ? '0' + month : month
+            let year = dateEntered.getFullYear().toString();
+
+        
+            window.location.replace("http://localhost:5000/main?date="+month+'_'+day+'_'+year);
+        }
+        function setAllDates(){
+            window.location.replace("http://localhost:5000/main");
+        }
         function currentTime() {
             let date = new Date(); 
             let day = date.getDate();
